@@ -37,6 +37,14 @@ npm test
 
 Los tests cargan `index.html` con jsdom y resuelven cada nivel con su propia `solution`. Si agregás un nivel, el test lo cubre automáticamente.
 
+## Deploy
+
+Cada push a `main` corre `npm test` y, si pasa, publica la raíz del repo en GitHub Pages con la Action de `.github/workflows/pages.yml`. La URL queda en `https://<usuario>.github.io/<repo>/`.
+
+Configuración manual, una sola vez, en el repo de GitHub: **Settings > Pages > Build and deployment > Source: GitHub Actions**. Sin eso, la Action falla en el paso de deploy.
+
+Si el nombre del repo o el usuario no son `PedroBraude/js-dom-terrario`, actualizá las URLs de `og:url`, `og:image` y `twitter:image` en `index.html`.
+
 ## Activar la nube (Supabase)
 
 Por defecto la nube está apagada: `CLOUD` en `index.html` tiene la URL y la key vacías. Para activarla:
