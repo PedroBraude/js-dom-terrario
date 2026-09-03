@@ -23,7 +23,9 @@
   code { font-family: var(--mono); font-size: 0.92em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; color: var(--amber); }
 
   .app { display: grid; grid-template-columns: minmax(340px, 5fr) minmax(320px, 6fr); min-height: 100vh; }
-  @media (max-width: 860px) { .app { grid-template-columns: 1fr; } }
+  /* 1fr is minmax(auto, 1fr): long <pre> lines would widen the single column
+     past the viewport. minmax(0, 1fr) + min-width: 0 let them scroll instead. */
+  @media (max-width: 860px) { .app { grid-template-columns: minmax(0, 1fr); } }
 
   /* ---------- left ---------- */
   .left { padding: 22px 24px 32px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
@@ -46,6 +48,8 @@
   .levels button.done { background: var(--moss); color: #12261a; border-color: var(--moss); }
   .levels button.current { outline: 2px solid var(--amber); outline-offset: 2px; color: var(--ink); }
   .levels button:disabled { opacity: .35; cursor: not-allowed; }
+  .levels button:focus-visible { outline: 3px solid var(--moss); outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
   /* guide */
   .guide { display: flex; gap: 12px; align-items: flex-start; }
@@ -61,6 +65,7 @@
 
   .cuenta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-dim); }
   .cuenta input { background: var(--code-bg); border: 1px solid var(--line); color: var(--ink); padding: 6px 10px; border-radius: 8px; font-family: inherit; font-size: 13px; min-width: 180px; }
+  .cuenta input:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
   .cuenta .btn { padding: 6px 12px; font-size: 13px; }
   .familia { align-items: center; }
   .familia .info { display: flex; flex-direction: column; gap: 4px; flex: 1; }
@@ -68,6 +73,8 @@
   .task { background: #2e3a1f; border: 1px solid #5c7a2c; border-radius: var(--radius); padding: 12px 14px; }
   .task strong { color: var(--amber); }
 
+  .code-label { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ink-dim); margin-bottom: -8px; }
+  .code-label b { color: var(--ink); }
   textarea { width: 100%; min-height: 140px; background: var(--code-bg); color: #e6f0ea; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-family: var(--mono); font-size: 14px; line-height: 1.55; resize: vertical; tab-size: 2; }
   textarea:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
   textarea::placeholder { color: #5f7a76; }
@@ -85,7 +92,7 @@
 
   /* ---------- right ---------- */
   .right { padding: 22px 24px 32px; display: flex; flex-direction: column; gap: 14px; }
-  .stage-head h3 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 18px; }
+  .stage-head h2 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 18px; }
   .stage-head small { color: var(--ink-dim); }
 
   /* persistent family */
@@ -156,10 +163,12 @@
 
   .terrario button { align-self: flex-start; background: #c99a5b; color: #3a2510; border: 0; border-bottom: 4px solid #7a5a36; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 700; }
   .terrario button:active { border-bottom-width: 1px; transform: translateY(3px); }
+  .terrario button:focus-visible { outline: 3px solid #1f2a17; outline-offset: 2px; }
   .terrario.goal button { opacity: .6; cursor: default; }
 
   details { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
   details summary { cursor: pointer; padding: 8px 14px; color: var(--ink-dim); }
+  details summary:focus-visible, .html-view:focus-visible { outline: 2px solid var(--moss); outline-offset: -2px; }
   .html-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 10px 10px; }
   @media (max-width: 560px) { .html-grid { grid-template-columns: 1fr; } }
   .html-view { background: var(--code-bg); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; color: #cfe0d6; white-space: pre; overflow: auto; margin: 0; }
@@ -173,6 +182,24 @@
   .win-card .medallas { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
   .win-card .medallas span { background: var(--panel-2); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
   @media (prefers-reduced-motion: reduce) { .terrario .bicho, .guide .face, .terrario.festejo .bicho, .familia .miembro { animation: none !important; transition: none; } }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 860px) {
+    .left, .right, .guide .bubble { min-width: 0; }
+    .left { border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+  @media (max-width: 560px) {
+    .left, .right { padding: 16px 14px 24px; }
+    .brand h1 { font-size: 26px; }
+    .chapters { grid-template-columns: 1fr 1fr; }
+    .levels button { width: 34px; height: 34px; }
+    .cuenta input { min-width: 0; flex: 1; }
+    .guide .face { font-size: 34px; }
+    textarea { font-size: 16px; min-height: 160px; } /* 16px avoids iOS zoom-on-focus */
+    .terrario { padding: 14px 10px 18px; min-height: 240px; }
+    .terrario .bicho { min-width: 48px; }
+    .win-card { padding: 20px 18px; }
+  }
 </style>
 </head>
 <body>
@@ -188,14 +215,15 @@
     <div class="cuenta" id="cuenta"><span id="cuentaEstado">Tu progreso se guarda en este navegador.</span></div>
 
     <div class="guide" id="guide">
-      <div class="face">🐞</div>
+      <div class="face" aria-hidden="true">🐞</div>
       <div class="bubble">
         <p class="story" id="story"></p>
-        <div id="lesson"></div>
+        <div id="lesson" aria-live="polite"></div>
       </div>
     </div>
 
     <div class="task" id="task"></div>
+    <label class="code-label" for="code"><b>Tu código</b> <span>Ctrl+Enter ejecuta · Tab indenta · Esc y luego Tab sale del editor</span></label>
     <textarea id="code" spellcheck="false" placeholder="// Escribí tu código acá y tocá Ejecutar"></textarea>
     <div class="actions">
       <button class="btn primary" id="run">Ejecutar</button>
@@ -203,36 +231,36 @@
       <button class="btn ghost" id="hint">Ver pista</button>
       <button class="btn ghost" id="solution">Ver solución</button>
     </div>
-    <div class="hint-text" id="hintText"></div>
-    <div class="console" id="console"></div>
+    <div class="hint-text" id="hintText" role="status"></div>
+    <div class="console" id="console" role="status"></div>
   </section>
 
   <section class="right">
-    <div class="stage-head"><h3 id="levelTitle"></h3></div>
+    <div class="stage-head"><h2 id="levelTitle"></h2></div>
     <div class="familia"><div class="info"><span class="label">Tu familia</span><div class="lista" id="familia"></div></div></div>
     <div class="scenes">
       <div>
-        <h4 class="scene-title">Tu terrario <small>lo que hace tu código</small></h4>
+        <h3 class="scene-title">Tu terrario <small>lo que hace tu código</small></h3>
         <div class="terrario" id="stage"></div>
       </div>
       <div>
-        <h4 class="scene-title">Objetivo <small>así tiene que quedar</small></h4>
+        <h3 class="scene-title">Objetivo <small>así tiene que quedar</small></h3>
         <div class="terrario goal" id="goal"></div>
       </div>
     </div>
     <details open>
       <summary>Ver el HTML de los dos terrarios</summary>
       <div class="html-grid">
-        <pre class="html-view" id="stageHtml"></pre>
-        <pre class="html-view" id="goalHtml"></pre>
+        <pre class="html-view" id="stageHtml" tabindex="0" aria-label="HTML de tu terrario"></pre>
+        <pre class="html-view" id="goalHtml" tabindex="0" aria-label="HTML del objetivo"></pre>
       </div>
     </details>
   </section>
 </div>
 
-<div class="win" id="win">
+<div class="win" id="win" role="dialog" aria-modal="true" aria-labelledby="winTitle">
   <div class="win-card">
-    <h2>Terrario abierto</h2>
+    <h2 id="winTitle">Terrario abierto</h2>
     <p id="winText"></p>
     <div class="bugs" id="winBugs"></div>
     <div class="medallas"><span>🏅 Despertador</span><span>🏅 Cuidador</span><span>🏅 Constructor</span><span>🏅 Guardián</span></div>
@@ -521,7 +549,7 @@ function renderNav() {
     const doneN = lv.filter(l => state.done.has(LEVELS.indexOf(l))).length;
     const d = document.createElement('div');
     d.className = 'chapter' + (LEVELS[state.current].ch === i ? ' current' : '') + (doneN === lv.length ? ' done' : '');
-    d.innerHTML = `<b>${i + 1}. ${c.name}</b>${c.desc}<div class="bar"><i style="width:${doneN / lv.length * 100}%"></i></div>`;
+    d.innerHTML = `<b>${i + 1}. ${c.name}</b>${c.desc}<span class="sr-only">, ${doneN} de ${lv.length} niveles</span><div class="bar" aria-hidden="true"><i style="width:${doneN / lv.length * 100}%"></i></div>`;
     ch.append(d);
   });
   const nav = $('#levels'); nav.innerHTML = '';
@@ -529,8 +557,9 @@ function renderNav() {
   LEVELS.forEach((lv, i) => {
     const b = document.createElement('button');
     b.textContent = i + 1; b.title = lv.title;
+    b.setAttribute('aria-label', `Nivel ${i + 1}: ${lv.title}${state.done.has(i) ? ' (resuelto)' : ''}`);
     if (state.done.has(i)) b.classList.add('done');
-    if (i === state.current) b.classList.add('current');
+    if (i === state.current) { b.classList.add('current'); b.setAttribute('aria-current', 'step'); }
     b.disabled = i > max;
     b.addEventListener('click', () => loadLevel(i));
     nav.append(b);
@@ -545,7 +574,7 @@ function say(html, happy) {
   guide.classList.toggle('happy', !!happy);
   if (happy) setTimeout(() => guide.classList.remove('happy'), 1200);
 }
-function loadLevel(i) {
+function loadLevel(i, { focus = true } = {}) {
   state.code[state.current] = codeArea.value;
   $('#next')?.remove();
   state.current = i;
@@ -560,7 +589,8 @@ function loadLevel(i) {
   codeArea.value = state.code[i] || '';
   hintText.textContent = ''; hintText.classList.remove('show');
   setConsole('');
-  renderNav(); refreshHtmlViews(); codeArea.focus();
+  renderNav(); refreshHtmlViews();
+  if (focus) codeArea.focus();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(snapshot())); } catch (e) {}
 }
 function setConsole(msg, kind) { consoleEl.textContent = msg; consoleEl.className = 'console' + (kind ? ' ' + kind : ''); }
@@ -574,13 +604,31 @@ function makeDocument(root) {
     createDocumentFragment: () => document.createDocumentFragment(), body: root, documentElement: root,
   };
 }
+// The player's code runs in this page, not in a sandbox. It receives a fake
+// `document` scoped to #stage, and the most common globals (window, globalThis,
+// self, top, parent, frames) are shadowed by a fake window so that naive code
+// like `window.document.querySelector(...)` still hits the player's terrarium.
+// This is a convenience boundary, not a security one: any element the fake
+// document returns still exposes the real page through ownerDocument,
+// parentElement or getRootNode(), and `Function('return this')()` returns the
+// real window. The threat model is self-XSS only: the code is the player's own,
+// it never runs in anyone else's browser, and a reload undoes any damage.
+// See README > Seguridad.
+function runPlayerCode(code, root, fakeConsole) {
+  const fakeDoc = makeDocument(root);
+  const fakeWin = { document: fakeDoc, console: fakeConsole };
+  fakeWin.window = fakeWin.globalThis = fakeWin.self = fakeWin.top = fakeWin.parent = fakeWin.frames = fakeWin;
+  new Function('document', 'console', 'window', 'globalThis', 'self', 'top', 'parent', 'frames', '"use strict";\n' + code)(
+    fakeDoc, fakeConsole, fakeWin, fakeWin, fakeWin, fakeWin, fakeWin, fakeWin
+  );
+}
 function run() {
   const lv = LEVELS[state.current];
   stage.innerHTML = fill(lv.html); stage.classList.remove('festejo');
   const logs = [];
   const fakeConsole = { log: (...a) => logs.push(a.map(String).join(' ')), error: (...a) => logs.push('ERROR ' + a.join(' ')) };
   try {
-    new Function('document', 'console', '"use strict";\n' + codeArea.value)(makeDocument(stage), fakeConsole);
+    runPlayerCode(codeArea.value, stage, fakeConsole);
   } catch (err) {
     refreshHtmlViews();
     setConsole('Error de JavaScript: ' + err.message, 'error');
@@ -626,6 +674,13 @@ function showWin() {
   $('#winText').textContent = `El Terrario de ${state.nombre} volvió a abrir. Encontraste un huevo, despertaste a todos, sacaste a la araña, reconstruiste la hoja y al final Pipa salió volando. Todo eso fue el DOM: seleccionar, cambiar, crear, borrar y escuchar.`;
   $('#winBugs').textContent = state.familia.map(m => m.e).join(' ');
   $('#win').classList.add('show');
+  $('.app').inert = true;
+  $('#winClose').focus();
+}
+function hideWin() {
+  $('#win').classList.remove('show');
+  $('.app').inert = false;
+  $('#run').focus();
 }
 
 
@@ -699,13 +754,24 @@ $('#run').addEventListener('click', run);
 $('#reset').addEventListener('click', () => { codeArea.value = ''; loadLevel(state.current); });
 $('#hint').addEventListener('click', () => { hintText.textContent = 'Pista: ' + fill(LEVELS[state.current].hint); hintText.classList.add('show'); });
 $('#solution').addEventListener('click', () => { codeArea.value = fill(LEVELS[state.current].solution); codeArea.focus(); });
+// Tab indents inside the editor. To avoid a keyboard trap (WCAG 2.1.2), Esc
+// lets the next Tab move focus out normally.
+let tabLeaves = false;
 codeArea.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
-  if (e.key === 'Tab') { e.preventDefault(); const s = codeArea.selectionStart, en = codeArea.selectionEnd; codeArea.value = codeArea.value.slice(0, s) + '  ' + codeArea.value.slice(en); codeArea.selectionStart = codeArea.selectionEnd = s + 2; }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); return; }
+  if (e.key === 'Escape') { tabLeaves = true; return; }
+  if (e.key === 'Tab') {
+    if (tabLeaves || e.shiftKey) { tabLeaves = false; return; }
+    e.preventDefault(); const s = codeArea.selectionStart, en = codeArea.selectionEnd; codeArea.value = codeArea.value.slice(0, s) + '  ' + codeArea.value.slice(en); codeArea.selectionStart = codeArea.selectionEnd = s + 2;
+    return;
+  }
+  tabLeaves = false; // any other key disarms the Esc exit
 });
-$('#winClose').addEventListener('click', () => { $('#win').classList.remove('show'); state.done.clear(); state.familia = []; state.nombre = ''; state.code = {}; saveProgress(); jar.update(); loadLevel(0); });
+codeArea.addEventListener('blur', () => { tabLeaves = false; });
+$('#winClose').addEventListener('click', () => { hideWin(); state.done.clear(); state.familia = []; state.nombre = ''; state.code = {}; saveProgress(); jar.update(); loadLevel(0); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#win').classList.contains('show')) hideWin(); });
 loadLocal();
-loadLevel(Math.min(state.current, unlockedUpTo()));
+loadLevel(Math.min(state.current, unlockedUpTo()), { focus: false });
 jar.update();
 initCloud();
 </script>

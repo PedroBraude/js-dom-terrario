@@ -97,6 +97,28 @@ Qué hace cada campo especial:
 
 Para agregar el nivel, insertalo en `LEVELS` en la posición que corresponda y correr `npm test`: el test resuelve todos los niveles con su `solution`, así que si el check y la solución no coinciden, se rompe ahí.
 
+## Seguridad: cómo corre el código del jugador
+
+El código que escribís se ejecuta con `new Function` **en la misma página**, no en un iframe. Recibe un `document` falso limitado a tu terrario y un `window` falso, así que `document.querySelector`, `window.document` o `globalThis.document` apuntan siempre al terrario y no a la página.
+
+Eso es una comodidad para aprender, no una barrera de seguridad. Riesgo residual, documentado a propósito:
+
+- Cualquier elemento que te devuelve el `document` falso es un elemento real: por `elemento.ownerDocument`, `elemento.parentElement` o `getRootNode()` se llega a la página entera.
+- `Function('return this')()` devuelve el `window` real. También son accesibles `localStorage`, `fetch`, `location` y las variables del juego (`state`, `LEVELS`).
+- No hay Content Security Policy que lo impida, porque el juego necesita `new Function` para funcionar.
+
+Por qué está bien así: el código es tuyo y corre solo en tu navegador, igual que si lo escribieras en la consola de DevTools. Nadie más lo ejecuta. Lo peor que puede pasar es que rompas la página para vos, y se arregla recargando. Con la nube activada, tu código se guarda en tu fila de Supabase y solo vos lo leés de vuelta (política RLS), así que tampoco viaja a otros usuarios.
+
+Si algún día el juego mostrara o ejecutara código de otras personas (por ejemplo, soluciones compartidas por link), esto deja de alcanzar: habría que mover el terrario a un `<iframe sandbox>` de otro origen y comunicarse por `postMessage`.
+
+## Accesibilidad
+
+- Se puede jugar entero con teclado: `Ctrl+Enter` ejecuta, `Tab` indenta dentro del editor y `Esc` seguido de `Tab` saca el foco del editor.
+- Los mensajes de Doña Vaquita, la pista y la consola son regiones `aria-live`, así que un lector de pantalla lee el feedback de cada intento.
+- Los botones de nivel tienen `aria-label` y `aria-current`; el final es un `role="dialog"` que deja el resto de la página `inert`.
+- Respeta `prefers-reduced-motion`.
+- Salvedad conocida: los dos terrarios contienen `<h1>` propios porque son el HTML del ejercicio (el nivel 1 enseña `querySelector('h1')`). Navegando por encabezados van a aparecer debajo de los `h3` de cada terrario.
+
 ## Licencia
 
 MIT. Ver [LICENSE](LICENSE).

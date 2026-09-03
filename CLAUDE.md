@@ -14,7 +14,7 @@ Juego educativo para aprender a manipular el DOM con JavaScript. Estilo Flexbox 
 - Sin frameworks, sin bundler, sin build step. Vanilla JS, HTML y CSS.
 - No cambiar la historia, los nombres de los personajes ni el orden de los niveles.
 - Textos en español rioplatense (voseo): "escribí", "tocá", "podés". Nunca "puedes", "vosotros", "haz clic".
-- El código del jugador corre con `new Function` contra un `document` falso (`makeDocument`) que solo expone el terrario del jugador. Nunca pasarle el `document` real.
+- El código del jugador corre con `new Function` (ver `runPlayerCode`) contra un `document` falso (`makeDocument`) y un `window` falso. NO es un sandbox: los elementos devueltos siguen exponiendo la página real por `ownerDocument` y `parentElement`. El modelo de amenaza es self-XSS solamente. No prometer aislamiento en textos ni docs; si alguna vez el código de un jugador se muestra a otro, hay que pasar a un iframe con `sandbox`.
 - Progreso siempre en `localStorage`. La nube (Supabase, magic link) es opcional y `CLOUD` queda vacío en el repo.
 - Nada de atribución de IA en commits. Conventional commits.
 

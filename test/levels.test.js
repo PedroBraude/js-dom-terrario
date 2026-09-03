@@ -1,4 +1,4 @@
-const { test, describe, before } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -24,7 +24,7 @@ function loadGame() {
   // Top-level const/function declarations of a classic script are not window
   // properties, so we reach them through eval in the window's scope.
   const api = win.eval(
-    '({ LEVELS, state, run, fill, loadLevel, makeDocument, stage, codeArea })'
+    '({ LEVELS, state, run, fill, loadLevel, runPlayerCode, stage, codeArea })'
   );
   return { dom, win, ...api };
 }
@@ -38,6 +38,7 @@ const KNOWN_OVERLAPS = new Set([
 describe('cada nivel se resuelve con su propia solución', () => {
   let game;
   before(() => { game = loadGame(); });
+  after(() => game.win.close());
 
   test('hay 15 niveles', () => {
     assert.equal(game.LEVELS.length, 15);
@@ -58,6 +59,48 @@ describe('cada nivel se resuelve con su propia solución', () => {
   });
 });
 
+describe('accesibilidad del editor', () => {
+  let game;
+  before(() => { game = loadGame(); });
+  after(() => game.win.close());
+
+  function press(key, init = {}) {
+    const ev = new game.win.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init });
+    game.codeArea.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  }
+
+  test('Tab indenta dentro del editor', () => {
+    game.codeArea.value = '';
+    assert.equal(press('Tab'), true, 'Tab tiene que quedar capturado');
+    assert.equal(game.codeArea.value, '  ');
+  });
+
+  test('Esc y luego Tab dejan salir del editor (sin trampa de teclado)', () => {
+    press('Escape');
+    assert.equal(press('Tab'), false, 'después de Esc, Tab tiene que seguir su curso normal');
+    assert.equal(press('Tab'), true, 'la salida es de un solo uso');
+  });
+
+  test('escribir después de Esc desarma la salida', () => {
+    press('Escape');
+    press('a');
+    assert.equal(press('Tab'), true, 'Tab vuelve a indentar si se tipeó algo después de Esc');
+  });
+
+  test('Shift+Tab siempre sale', () => {
+    assert.equal(press('Tab', { shiftKey: true }), false);
+  });
+
+  test('la guía y la consola son regiones aria-live', () => {
+    const d = game.win.document;
+    assert.equal(d.getElementById('lesson').getAttribute('aria-live'), 'polite');
+    assert.equal(d.getElementById('console').getAttribute('role'), 'status');
+    assert.equal(d.getElementById('hintText').getAttribute('role'), 'status');
+    assert.ok(d.querySelector('label[for="code"]'), 'el textarea tiene label');
+  });
+});
+
 describe('ninguna solución resuelve otro nivel', () => {
   let game;
   before(() => {
@@ -65,16 +108,17 @@ describe('ninguna solución resuelve otro nivel', () => {
     // Level 15 compares against state.nombre, so give it a real name first.
     game.state.nombre = 'Ana';
   });
+  after(() => game.win.close());
 
   // Replays the relevant part of run() against a scratch stage without
   // touching state.
   function solves(solutionIndex, levelIndex) {
-    const { LEVELS, fill, makeDocument, stage, win } = game;
+    const { LEVELS, fill, runPlayerCode, stage } = game;
     const lv = LEVELS[levelIndex];
     stage.innerHTML = fill(lv.html);
     const silent = { log() {}, error() {} };
     try {
-      new win.Function('document', 'console', '"use strict";\n' + fill(LEVELS[solutionIndex].solution))(makeDocument(stage), silent);
+      runPlayerCode(fill(LEVELS[solutionIndex].solution), stage, silent);
     } catch {
       return false;
     }
@@ -82,6 +126,37 @@ describe('ninguna solución resuelve otro nivel', () => {
     if (lv.simulate) lv.simulate(stage);
     return !prematuro && !!lv.check(stage);
   }
+
+  test('el código del jugador no ve el DOM real a través de document ni window', () => {
+    const { runPlayerCode, stage, win } = game;
+    stage.innerHTML = '<h1>Terrario de ???</h1>';
+    // Free identifiers in player code resolve against the page's window.
+    win.__seen = {};
+    runPlayerCode(
+      [
+        '__seen.docBody = document.body;',
+        '__seen.winDoc = window.document;',
+        '__seen.globalDoc = globalThis.document;',
+        '__seen.selfDoc = self.document;',
+        '__seen.topDoc = top.document;',
+        '__seen.parentDoc = parent.document;',
+        '__seen.framesDoc = frames.document;',
+        'window.document.querySelector("h1").textContent = "Terrario de Test";',
+      ].join('\n'),
+      stage,
+      { log() {}, error() {} }
+    );
+    const seen = win.__seen;
+    assert.equal(seen.docBody, stage, 'document.body tiene que ser el terrario');
+    assert.equal(seen.winDoc.body, stage, 'window.document tiene que ser el document falso');
+    assert.equal(seen.globalDoc, seen.winDoc);
+    assert.equal(seen.selfDoc, seen.winDoc);
+    assert.equal(seen.topDoc, seen.winDoc);
+    assert.equal(seen.parentDoc, seen.winDoc);
+    assert.equal(seen.framesDoc, seen.winDoc);
+    assert.equal(stage.querySelector('h1').textContent, 'Terrario de Test');
+    assert.equal(win.document.querySelector('.brand h1').textContent, 'Terrario DOM', 'el h1 real de la página no se toca');
+  });
 
   for (let i = 0; i < 15; i++) {
     for (let j = 0; j < 15; j++) {
