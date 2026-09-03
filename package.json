@@ -1,0 +1,14 @@
+{
+  "name": "terrario-dom",
+  "version": "1.0.0",
+  "description": "Juego para aprender a manipular el DOM con JavaScript",
+  "private": true,
+  "license": "MIT",
+  "author": "Pedro Lucas Braude",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  }
+}
