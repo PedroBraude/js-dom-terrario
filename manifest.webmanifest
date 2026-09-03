@@ -1,0 +1,19 @@
+{
+  "name": "Terrario DOM",
+  "short_name": "Terrario",
+  "description": "Aprendé a manipular el DOM con JavaScript jugando: 15 niveles y una familia de bichos que rescatar.",
+  "lang": "es-AR",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#1b2a2e",
+  "theme_color": "#1b2a2e",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐞</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
