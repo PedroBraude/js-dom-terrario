@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Aprendé a manipular el DOM con JavaScript jugando: 15 niveles, un terrario abandonado y una familia de bichos que rescatar.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐞</text></svg>">
+<title>Terrario DOM — un terrario abandonado que vas a reabrir con JavaScript</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1b2a2e; --panel: #22363b; --panel-2: #2b444a; --ink: #eee8d8; --ink-dim: #a9b8b3;
+    --amber: #f2c14e; --moss: #8fd3a7; --coral: #f08a6b; --code-bg: #121d1f; --line: #35525a; --radius: 10px;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans: "Atkinson Hyperlegible", system-ui, sans-serif;
+    --serif: "Fraunces", Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+  button { font-family: inherit; cursor: pointer; }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; color: var(--amber); }
+
+  .app { display: grid; grid-template-columns: minmax(340px, 5fr) minmax(320px, 6fr); min-height: 100vh; }
+  @media (max-width: 860px) { .app { grid-template-columns: 1fr; } }
+
+  /* ---------- left ---------- */
+  .left { padding: 22px 24px 32px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+  .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .brand h1 { font-family: var(--serif); font-weight: 700; font-size: 30px; margin: 0; letter-spacing: -0.01em; }
+  .brand h1 span { color: var(--moss); }
+  .brand small { color: var(--ink-dim); }
+
+  /* chapters + progress */
+  .chapters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .chapter { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; color: var(--ink-dim); }
+  .chapter b { display: block; color: var(--ink); font-size: 13px; }
+  .chapter .bar { height: 5px; background: var(--code-bg); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+  .chapter .bar i { display: block; height: 100%; background: var(--moss); width: 0; transition: width .4s; }
+  .chapter.current { border-color: var(--amber); }
+  .chapter.done { border-color: var(--moss); }
+  .chapter.done b::after { content: " 🏅"; }
+  .levels { display: flex; flex-wrap: wrap; gap: 6px; }
+  .levels button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink-dim); font-size: 12px; font-weight: 700; }
+  .levels button.done { background: var(--moss); color: #12261a; border-color: var(--moss); }
+  .levels button.current { outline: 2px solid var(--amber); outline-offset: 2px; color: var(--ink); }
+  .levels button:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* guide */
+  .guide { display: flex; gap: 12px; align-items: flex-start; }
+  .guide .face { font-size: 44px; line-height: 1; flex: none; transform-origin: bottom; }
+  .guide .bubble { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; position: relative; flex: 1; }
+  .guide .bubble::before { content: ""; position: absolute; left: -8px; top: 16px; border: 8px solid transparent; border-right-color: var(--line); border-left: 0; }
+  .guide .bubble p { margin: 0 0 8px; max-width: 60ch; }
+  .guide .bubble p:last-child { margin-bottom: 0; }
+  .guide .bubble pre { background: var(--code-bg); border-left: 3px solid var(--amber); padding: 10px 12px; border-radius: 0 var(--radius) var(--radius) 0; font-family: var(--mono); font-size: 13px; overflow-x: auto; margin: 0 0 10px; color: #d9e4de; }
+  .guide.happy .face { animation: hop .5s ease-out 2; }
+  @keyframes hop { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px) rotate(-8deg); } }
+  .story { font-family: var(--serif); font-style: italic; color: #d8d0b8; border-left: 3px solid var(--moss); padding: 4px 12px; margin: 0; }
+
+  .cuenta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-dim); }
+  .cuenta input { background: var(--code-bg); border: 1px solid var(--line); color: var(--ink); padding: 6px 10px; border-radius: 8px; font-family: inherit; font-size: 13px; min-width: 180px; }
+  .cuenta .btn { padding: 6px 12px; font-size: 13px; }
+  .familia { align-items: center; }
+  .familia .info { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .familia .lista { display: flex; gap: 10px; flex-wrap: wrap; }
+  .task { background: #2e3a1f; border: 1px solid #5c7a2c; border-radius: var(--radius); padding: 12px 14px; }
+  .task strong { color: var(--amber); }
+
+  textarea { width: 100%; min-height: 140px; background: var(--code-bg); color: #e6f0ea; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-family: var(--mono); font-size: 14px; line-height: 1.55; resize: vertical; tab-size: 2; }
+  textarea:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+  textarea::placeholder { color: #5f7a76; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); padding: 9px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+  .btn.primary { background: var(--amber); color: #2a2109; border-color: var(--amber); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.ghost { background: transparent; font-weight: 400; color: var(--ink-dim); }
+  .btn:focus-visible { outline: 2px solid var(--moss); outline-offset: 2px; }
+  .hint-text { color: var(--ink-dim); font-size: 14px; }
+  .hint-text.show { color: var(--ink); background: var(--panel); border: 1px dashed var(--line); padding: 8px 12px; border-radius: 8px; }
+  .console { font-family: var(--mono); font-size: 13px; padding: 8px 12px; border-radius: 8px; background: var(--panel); color: var(--ink-dim); white-space: pre-wrap; border: 1px solid var(--line); }
+  .console.error { color: #fff; background: #8b3a2b; border-color: #8b3a2b; }
+  .console:empty { display: none; }
+
+  /* ---------- right ---------- */
+  .right { padding: 22px 24px 32px; display: flex; flex-direction: column; gap: 14px; }
+  .stage-head h3 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 18px; }
+  .stage-head small { color: var(--ink-dim); }
+
+  /* persistent family */
+  .familia { background: #2a3d2a; border: 1px solid #4b8a35; border-radius: var(--radius); padding: 8px 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 52px; }
+  .familia .label { font-family: var(--serif); font-size: 15px; color: #dff2c9; }
+  .familia .vacio { color: var(--ink-dim); font-size: 13px; }
+  .familia .miembro { display: inline-flex; flex-direction: column; align-items: center; font-size: 11px; font-weight: 700; color: #dff2c9; animation: llegar .5s ease-out; }
+  .familia .miembro i { font-style: normal; font-size: 26px; line-height: 1; }
+  @keyframes llegar { from { transform: translateY(12px) scale(.5); opacity: 0; } }
+
+  .scenes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 1100px) and (min-width: 861px), (max-width: 560px) { .scenes { grid-template-columns: 1fr; } }
+  .scene-title { font-family: var(--serif); font-size: 17px; margin: 0 0 6px; display: flex; gap: 10px; align-items: baseline; }
+  .scene-title small { color: var(--ink-dim); font-family: var(--sans); font-size: 13px; }
+
+  .terrario {
+    position: relative; min-height: 300px; border-radius: 14px; border: 3px solid #7a5a36;
+    box-shadow: inset 0 0 0 4px #b5895a, 0 8px 0 #4d3620;
+    background: radial-gradient(ellipse at 50% 100%, #3b5a2e 0%, transparent 60%), linear-gradient(#a9d6ea 0%, #cbe8f2 45%, #7fb069 46%, #6b9a52 100%);
+    padding: 18px 16px 22px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; color: #1f2a17;
+  }
+  .terrario.noche { background: radial-gradient(ellipse at 50% 100%, #24401f 0%, transparent 60%), linear-gradient(#1e2b4a 0%, #2b3d63 45%, #3f6b3a 46%, #2f5228 100%); color: #eef; }
+  .terrario.noche::before { content: "🌙"; position: absolute; top: 10px; left: 14px; font-size: 22px; }
+  .terrario.goal { filter: saturate(.75); }
+  .terrario.goal::after { content: "objetivo"; position: absolute; top: 8px; right: 12px; font-size: 12px; color: #4d3620; background: #e8d6b7; padding: 2px 8px; border-radius: 999px; }
+  .terrario.festejo .bicho { animation: fiesta .6s ease-in-out 2; }
+  @keyframes fiesta { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-14px) rotate(10deg); } }
+
+  .terrario h1, .terrario h2 { font-family: var(--serif); font-size: 20px; margin: 0; align-self: flex-start; background: #c99a5b; color: #3a2510; padding: 6px 16px; border-radius: 6px; border-bottom: 4px solid #7a5a36; box-shadow: 0 2px 0 #4d3620; }
+  .terrario h1::before, .terrario h2::before { content: "🪧 "; }
+  .terrario p { margin: 0; background: rgba(255,255,255,.7); padding: 4px 10px; border-radius: 8px; align-self: flex-start; font-size: 14px; color: #1f2a17; }
+  .terrario p:empty { display: none; }
+  .terrario strong { color: #b5451b; }
+
+  .terrario .hoja { background: #79b85a; border: 2px solid #4b8a35; border-radius: 40px 12px 40px 12px; padding: 10px 14px; min-height: 84px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; position: relative; color: #1f2a17; }
+  .terrario .hoja::before { content: attr(id); position: absolute; top: -9px; left: 18px; font-family: var(--mono); font-size: 11px; background: #2f5a22; color: #dff2c9; padding: 1px 8px; border-radius: 999px; }
+  .terrario .hoja:not([id])::before { content: none; }
+  .terrario .hoja.brilla { background: #f2c14e; border-color: #c99a1b; box-shadow: 0 0 22px #f2c14e; }
+  .terrario .hoja.rota { background: #b48a5a; border-color: #7a5a36; border-radius: 12px 40px 12px 40px; }
+  .terrario .hoja.rota::after { content: "🍂 rota"; font-size: 12px; color: #4d3620; position: absolute; right: 10px; top: 6px; }
+  .terrario .hoja:empty::after { content: "vacía"; color: #2f5a22; font-size: 12px; opacity: .7; }
+
+  .terrario .bicho { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-size: 13px; font-weight: 700; min-width: 56px; transition: transform .3s, opacity .3s, filter .3s; }
+  .terrario .bicho::before { content: "🥚"; font-size: 40px; line-height: 1; transition: transform .3s; }
+  .terrario .bicho:empty::after { content: "(sin nombre)"; font-weight: 400; color: #5a5a4a; font-size: 11px; }
+  .terrario .bicho[data-animal="mariquita"]::before { content: "🐞"; }
+  .terrario .bicho[data-animal="caracol"]::before { content: "🐌"; }
+  .terrario .bicho[data-animal="oruga"]::before { content: "🐛"; }
+  .terrario .bicho[data-animal="mariposa"]::before { content: "🦋"; }
+  .terrario .bicho[data-animal="abeja"]::before { content: "🐝"; }
+  .terrario .bicho[data-animal="arana"]::before { content: "🕷️"; }
+  .terrario .bicho[data-animal="hormiga"]::before { content: "🐜"; }
+  .terrario .bicho[data-animal="rana"]::before { content: "🐸"; }
+  .terrario .bicho[data-animal="luciernaga"]::before { content: "✨"; }
+  .terrario .bicho.dormido { filter: grayscale(1); opacity: .55; }
+  .terrario .bicho.dormido::before { content: "💤"; }
+  .terrario .bicho.brilla::before { filter: drop-shadow(0 0 10px #ffd84a) drop-shadow(0 0 20px #ffb300); }
+  .terrario .bicho.feliz::before { animation: hop .5s ease-out infinite; }
+  .terrario .bicho.asustado { filter: hue-rotate(180deg); }
+  .terrario .bicho.asustado::after { content: "😨"; font-size: 12px; }
+  .terrario .bicho.oculto { display: none; }
+
+  .terrario .planta { display: inline-flex; flex-direction: column; align-items: center; font-size: 13px; font-weight: 700; }
+  .terrario .planta::before { content: "🌱"; font-size: 40px; line-height: 1; }
+  .terrario .planta[data-nivel="1"]::before { content: "🌿"; }
+  .terrario .planta[data-nivel="2"]::before { content: "🪴"; }
+  .terrario .planta[data-nivel="3"]::before { content: "🌳"; font-size: 56px; }
+
+  .terrario button { align-self: flex-start; background: #c99a5b; color: #3a2510; border: 0; border-bottom: 4px solid #7a5a36; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+  .terrario button:active { border-bottom-width: 1px; transform: translateY(3px); }
+  .terrario.goal button { opacity: .6; cursor: default; }
+
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  details summary { cursor: pointer; padding: 8px 14px; color: var(--ink-dim); }
+  .html-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 10px 10px; }
+  @media (max-width: 560px) { .html-grid { grid-template-columns: 1fr; } }
+  .html-view { background: var(--code-bg); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; color: #cfe0d6; white-space: pre; overflow: auto; margin: 0; }
+  .html-view .t { color: #f2c14e; } .html-view .a { color: #8fd3a7; } .html-view .v { color: #f08a6b; }
+
+  .win { position: fixed; inset: 0; display: none; place-items: center; background: rgba(10,18,20,.8); z-index: 10; padding: 16px; }
+  .win.show { display: grid; }
+  .win-card { background: var(--panel); border: 1px solid var(--moss); border-radius: 16px; padding: 28px 32px; max-width: 480px; text-align: center; }
+  .win-card h2 { font-family: var(--serif); font-size: 28px; margin: 0 0 8px; color: var(--moss); }
+  .win-card .bugs { font-size: 34px; letter-spacing: 4px; margin: 8px 0 12px; }
+  .win-card .medallas { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .win-card .medallas span { background: var(--panel-2); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) { .terrario .bicho, .guide .face, .terrario.festejo .bicho, .familia .miembro { animation: none !important; transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="left">
+    <div class="brand">
+      <h1>Terrario <span>DOM</span></h1>
+      <small>Un terrario abandonado que vas a reabrir con JavaScript</small>
+    </div>
+
+    <div class="chapters" id="chapters"></div>
+    <nav class="levels" id="levels" aria-label="Niveles"></nav>
+    <div class="cuenta" id="cuenta"><span id="cuentaEstado">Tu progreso se guarda en este navegador.</span></div>
+
+    <div class="guide" id="guide">
+      <div class="face">🐞</div>
+      <div class="bubble">
+        <p class="story" id="story"></p>
+        <div id="lesson"></div>
+      </div>
+    </div>
+
+    <div class="task" id="task"></div>
+    <textarea id="code" spellcheck="false" placeholder="// Escribí tu código acá y tocá Ejecutar"></textarea>
+    <div class="actions">
+      <button class="btn primary" id="run">Ejecutar</button>
+      <button class="btn" id="reset">Reiniciar nivel</button>
+      <button class="btn ghost" id="hint">Ver pista</button>
+      <button class="btn ghost" id="solution">Ver solución</button>
+    </div>
+    <div class="hint-text" id="hintText"></div>
+    <div class="console" id="console"></div>
+  </section>
+
+  <section class="right">
+    <div class="stage-head"><h3 id="levelTitle"></h3></div>
+    <div class="familia"><div class="info"><span class="label">Tu familia</span><div class="lista" id="familia"></div></div></div>
+    <div class="scenes">
+      <div>
+        <h4 class="scene-title">Tu terrario <small>lo que hace tu código</small></h4>
+        <div class="terrario" id="stage"></div>
+      </div>
+      <div>
+        <h4 class="scene-title">Objetivo <small>así tiene que quedar</small></h4>
+        <div class="terrario goal" id="goal"></div>
+      </div>
+    </div>
+    <details open>
+      <summary>Ver el HTML de los dos terrarios</summary>
+      <div class="html-grid">
+        <pre class="html-view" id="stageHtml"></pre>
+        <pre class="html-view" id="goalHtml"></pre>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="win" id="win">
+  <div class="win-card">
+    <h2>Terrario abierto</h2>
+    <p id="winText"></p>
+    <div class="bugs" id="winBugs"></div>
+    <div class="medallas"><span>🏅 Despertador</span><span>🏅 Cuidador</span><span>🏅 Constructor</span><span>🏅 Guardián</span></div>
+    <button class="btn primary" id="winClose">Volver a empezar</button>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------
+// World: <span class="bicho" data-animal="..."> is a bug, <div class="hoja"> a leaf.
+// Story: an abandoned terrarium. Doña Vaquita (a ladybug) hands it to you.
+// Pipa the egg you find in ch.1 becomes a butterfly in the final level.
+// ---------------------------------------------------------------
+const CHAPTERS = [
+  { name: 'Despertar', desc: 'Encontrar lo que hay', badge: 'Despertador' },
+  { name: 'Cuidar', desc: 'Atender a los bichos', badge: 'Cuidador' },
+  { name: 'Reconstruir', desc: 'Arreglar las hojas', badge: 'Constructor' },
+  { name: 'Abrir', desc: 'Que todo responda', badge: 'Guardián' },
+];
+
+const LEVELS = [
+  // ---------- Capítulo 1: Despertar ----------
+  {
+    ch: 0, title: "querySelector + textContent",
+    story: `Hola. Soy Doña Vaquita. Este terrario está cerrado desde hace años: el cartel ni siquiera tiene dueño. Voy a necesitar que lo pongas en marcha vos, porque yo solo tengo seis patitas y ninguna sabe escribir JavaScript.`,
+    html: `<h1>Terrario de ???</h1>\n<div class="hoja" id="entrada"></div>`,
+    goal: `<h1>Terrario de (tu nombre)</h1>\n<div class="hoja" id="entrada"></div>`,
+    lesson: `<p>Todo lo que ves es HTML. El DOM es ese HTML convertido en objetos que JavaScript puede tocar. Con <code>document.querySelector('selector')</code> agarrás el primer elemento que coincide con un selector CSS, y con <code>.textContent</code> leés o cambiás su texto.</p>
+<pre>const cartel = document.querySelector('h1');
+cartel.textContent = 'Nuevo texto';</pre>`,
+    task: `Cambiá el texto del <strong>h1</strong> a <strong>Terrario de</strong> seguido de tu nombre (el que quieras).`,
+    hint: `document.querySelector('h1').textContent = 'Terrario de Ana';`,
+    solution: `document.querySelector('h1').textContent = 'Terrario de Ana';`,
+    check: s => { const t = s.querySelector('h1')?.textContent.trim() || ''; return /^Terrario de .+/.test(t) && !t.includes('???'); },
+    onWin: s => { state.nombre = s.querySelector('h1').textContent.trim().replace(/^Terrario de /, ''); },
+  },
+  {
+    ch: 0, title: "getElementById",
+    story: `Con el cartel a tu nombre ya me animo a mostrarte algo. Mirá lo que encontré debajo de la hoja de la entrada: un huevo. Nadie sabe de qué es. Habrá que ponerle nombre.`,
+    html: `<h1>Terrario de {{nombre}}</h1>\n<div class="hoja" id="entrada">\n  <span id="huevo" class="bicho"></span>\n</div>`,
+    goal: `<h1>Terrario de {{nombre}}</h1>\n<div class="hoja" id="entrada">\n  <span id="huevo" class="bicho">Pipa</span>\n</div>`,
+    lesson: `<p>Cuando un elemento tiene <code>id</code>, lo buscás directo con <code>document.getElementById('nombre')</code>, sin el <code>#</code>. Es lo mismo que <code>querySelector('#nombre')</code>.</p>
+<pre>const caja = document.getElementById('caja');
+caja.textContent = 'Hola';</pre>`,
+    task: `Ponele el nombre <strong>Pipa</strong> al elemento con id <strong>huevo</strong>.`,
+    hint: `getElementById('huevo') y después textContent = 'Pipa'.`,
+    solution: `document.getElementById('huevo').textContent = 'Pipa';`,
+    check: s => s.querySelector('#huevo')?.textContent.trim() === 'Pipa',
+  },
+  {
+    ch: 0, title: "setAttribute / dataset",
+    story: `¡Se mueve! Pipa quiere salir. En este terrario, lo que un bicho <em>es</em> lo decide el atributo <code>data-animal</code>. Cuando se lo pongas, va a eclosionar.`,
+    html: `<div class="hoja" id="entrada">\n  <span id="huevo" class="bicho">Pipa</span>\n</div>`,
+    goal: `<div class="hoja" id="entrada">\n  <span id="huevo" class="bicho" data-animal="oruga">Pipa</span>\n</div>`,
+    lesson: `<p>Los atributos (<code>href</code>, <code>src</code>, <code>data-*</code>…) se cambian con <code>setAttribute(nombre, valor)</code> y se leen con <code>getAttribute(nombre)</code>. Los <code>data-*</code> también viven en <code>elemento.dataset</code>: <code>data-animal</code> es <code>dataset.animal</code>.</p>
+<pre>img.setAttribute('src', 'gato.jpg');
+caja.dataset.color = 'rojo'; // = data-color="rojo"</pre>`,
+    task: `Ponele a <strong>#huevo</strong> el atributo <strong>data-animal</strong> con valor <strong>oruga</strong>.`,
+    hint: `setAttribute('data-animal', 'oruga') o dataset.animal = 'oruga'.`,
+    solution: `document.getElementById('huevo').setAttribute('data-animal', 'oruga');`,
+    check: s => s.querySelector('#huevo')?.dataset.animal === 'oruga',
+    gana: { e: '🐛', n: 'Pipa' },
+  },
+
+  // ---------- Capítulo 2: Cuidar ----------
+  {
+    ch: 1, title: "classList.add",
+    story: `Pipa tiene hambre y es de noche: no se ve nada. Por suerte en la hoja del fondo vive Luz, una luciérnaga que dejó de brillar cuando el terrario cerró. Si la prendés, Pipa va a poder comer.`,
+    noche: true,
+    html: `<div class="hoja" id="fondo">\n  <span class="bicho" data-animal="luciernaga">Luz</span>\n  <span class="bicho" data-animal="oruga">Pipa</span>\n</div>`,
+    goal: `<div class="hoja" id="fondo">\n  <span class="bicho brilla" data-animal="luciernaga">Luz</span>\n  <span class="bicho" data-animal="oruga">Pipa</span>\n</div>`,
+    lesson: `<p><code>element.classList</code> es la lista de clases: <code>.add()</code> agrega, <code>.remove()</code> saca, <code>.toggle()</code> alterna, <code>.contains()</code> pregunta. Acá la clase <code>brilla</code> enciende al bicho.</p>
+<pre>const bicho = document.querySelector('.bicho');
+bicho.classList.add('otra-clase');</pre>`,
+    task: `Agregale la clase <strong>brilla</strong> a Luz (el bicho con <strong>data-animal="luciernaga"</strong>).`,
+    hint: `Selector: '[data-animal="luciernaga"]'. Después classList.add('brilla').`,
+    solution: `document.querySelector('[data-animal="luciernaga"]').classList.add('brilla');`,
+    check: s => s.querySelector('[data-animal="luciernaga"]')?.classList.contains('brilla') && !s.querySelector('[data-animal="oruga"]')?.classList.contains('brilla'),
+    gana: { e: '✨', n: 'Luz' },
+  },
+  {
+    ch: 1, title: "classList.remove",
+    story: `Con luz ya se ve el resto. En la hoja de la laguna, Sapo lleva años dormido. Es el que cuidaba el terrario antes: lo necesitamos despierto.`,
+    html: `<div class="hoja" id="laguna">\n  <span class="bicho dormido" data-animal="rana">Sapo</span>\n</div>`,
+    goal: `<div class="hoja" id="laguna">\n  <span class="bicho" data-animal="rana">Sapo</span>\n</div>`,
+    lesson: `<p>La clase <code>dormido</code> apaga al bicho. Sacar una clase es igual de fácil que ponerla.</p>
+<pre>elemento.classList.remove('nombre-de-clase');</pre>`,
+    task: `Despertá a Sapo sacándole la clase <strong>dormido</strong>.`,
+    hint: `querySelector('.dormido').classList.remove('dormido')`,
+    solution: `document.querySelector('.dormido').classList.remove('dormido');`,
+    check: s => s.querySelector('[data-animal="rana"]') && !s.querySelector('.dormido'),
+    gana: { e: '🐸', n: 'Sapo' },
+  },
+  {
+    ch: 1, title: "querySelectorAll + forEach",
+    story: `Sapo se desperezó y dijo: "¿y los demás?". Detrás de la piedra están Lola, Tito y Fer, todos dormidos. Despertarlos de a uno sería eterno.`,
+    html: `<div class="hoja" id="piedra">\n  <span class="bicho dormido" data-animal="mariquita">Lola</span>\n  <span class="bicho dormido" data-animal="caracol">Tito</span>\n  <span class="bicho dormido" data-animal="hormiga">Fer</span>\n</div>`,
+    goal: `<div class="hoja" id="piedra">\n  <span class="bicho" data-animal="mariquita">Lola</span>\n  <span class="bicho" data-animal="caracol">Tito</span>\n  <span class="bicho" data-animal="hormiga">Fer</span>\n</div>`,
+    lesson: `<p><code>querySelectorAll</code> devuelve <em>todos</em> los que coinciden (una NodeList) y se recorre con <code>forEach</code>. No podés hacer <code>lista.classList.remove(...)</code> sobre la lista entera: hay que ir uno por uno.</p>
+<pre>document.querySelectorAll('.bicho').forEach(b => {
+  b.classList.add('feliz');
+});</pre>`,
+    task: `Despertá a los <strong>tres</strong> bichos con una sola pasada.`,
+    hint: `querySelectorAll('.dormido').forEach(b => b.classList.remove('dormido'))`,
+    solution: `document.querySelectorAll('.dormido').forEach(b => {\n  b.classList.remove('dormido');\n});`,
+    check: s => s.querySelectorAll('.bicho').length === 3 && !s.querySelector('.dormido'),
+    gana: [{ e: '🐞', n: 'Lola' }, { e: '🐌', n: 'Tito' }, { e: '🐜', n: 'Fer' }],
+  },
+  {
+    ch: 1, title: "Selectores combinados",
+    story: `Ya somos una familia. Ahora, un problema chico: hay dos mariquitas iguales (Lola y su prima Pipi) y solo Pipi está enferma. Necesita brillar un rato al sol, pero solo ella: si le das sol a Lola, se marea.`,
+    html: `<div class="hoja" id="arriba">\n  <span class="bicho" data-animal="mariquita">Lola</span>\n</div>\n<div class="hoja" id="abajo">\n  <span class="bicho" data-animal="mariquita">Pipi</span>\n</div>`,
+    goal: `<div class="hoja" id="arriba">\n  <span class="bicho" data-animal="mariquita">Lola</span>\n</div>\n<div class="hoja" id="abajo">\n  <span class="bicho brilla" data-animal="mariquita">Pipi</span>\n</div>`,
+    lesson: `<p><code>querySelector</code> acepta cualquier selector CSS, incluidos los combinados: <code>'#abajo .bicho'</code> (un .bicho adentro de #abajo), <code>'.hoja:last-child'</code>, <code>'[data-animal="abeja"]'</code>.</p>
+<pre>document.querySelector('#abajo .bicho');
+document.querySelector('.hoja:last-child .bicho');</pre>`,
+    task: `Hacé brillar solo a <strong>Pipi</strong>, la mariquita de la hoja <strong>#abajo</strong>.`,
+    hint: `'#abajo .bicho' elige el bicho que está adentro de #abajo.`,
+    solution: `document.querySelector('#abajo .bicho').classList.add('brilla');`,
+    check: s => s.querySelector('#abajo .bicho')?.classList.contains('brilla') && !s.querySelector('#arriba .bicho')?.classList.contains('brilla'),
+    gana: { e: '🐞', n: 'Pipi' },
+  },
+  {
+    ch: 1, title: "style",
+    story: `Sapo se comió todos los mosquitos que se habían acumulado en años de abandono. Quedó, digamos, grande. Hay que reflejarlo.`,
+    html: `<div class="hoja" id="laguna">\n  <span class="bicho" data-animal="rana">Sapo</span>\n</div>`,
+    goal: `<div class="hoja" id="laguna">\n  <span class="bicho" data-animal="rana" style="font-size: 30px">Sapo</span>\n</div>`,
+    lesson: `<p><code>element.style</code> escribe estilos inline. Las propiedades con guion van en camelCase: <code>font-size</code> → <code>fontSize</code>. Para estados usá clases; <code>style</code> es para valores calculados (tamaños, posiciones, colores dinámicos).</p>
+<pre>caja.style.color = 'tomato';
+caja.style.fontSize = '20px';</pre>`,
+    task: `Ponele a Sapo <strong>font-size: 30px</strong> usando <code>style</code>.`,
+    hint: `elemento.style.fontSize = '30px'`,
+    solution: `document.querySelector('.bicho').style.fontSize = '30px';`,
+    check: s => s.querySelector('.bicho')?.style.fontSize === '30px',
+  },
+
+  // ---------- Capítulo 3: Reconstruir ----------
+  {
+    ch: 2, title: "remove",
+    story: `Ahora sabemos por qué cerró el terrario: una araña se instaló en la hoja grande y asustó a todos. Lola y Tito ni se le acercan. Hay que sacarla (a otro lado, tranquilo, las arañas también tienen su casa).`,
+    html: `<div class="hoja" id="grande">\n  <span class="bicho asustado" data-animal="mariquita">Lola</span>\n  <span class="bicho intrusa" data-animal="arana">???</span>\n  <span class="bicho asustado" data-animal="caracol">Tito</span>\n</div>`,
+    goal: `<div class="hoja" id="grande">\n  <span class="bicho asustado" data-animal="mariquita">Lola</span>\n  <span class="bicho asustado" data-animal="caracol">Tito</span>\n</div>`,
+    lesson: `<p>Para sacar un elemento del DOM: <code>elemento.remove()</code>. La forma vieja era <code>padre.removeChild(hijo)</code>, todavía la vas a ver por ahí.</p>
+<pre>document.querySelector('.viejo').remove();</pre>`,
+    task: `Eliminá al bicho con clase <strong>intrusa</strong>.`,
+    hint: `querySelector('.intrusa').remove()`,
+    solution: `document.querySelector('.intrusa').remove();`,
+    check: s => !s.querySelector('.intrusa') && s.querySelectorAll('.bicho').length === 2,
+  },
+  {
+    ch: 2, title: "parentElement",
+    story: `Sin araña, Lola y Tito siguen asustados: la hoja donde están quedó rota. Tito está parado justo ahí. Desde él, subí a la hoja y arreglala.`,
+    html: `<div class="hoja rota" id="grande">\n  <span id="tito" class="bicho asustado" data-animal="caracol">Tito</span>\n</div>\n<div class="hoja" id="laguna">\n  <span class="bicho" data-animal="rana">Sapo</span>\n</div>`,
+    goal: `<div class="hoja" id="grande">\n  <span id="tito" class="bicho" data-animal="caracol">Tito</span>\n</div>\n<div class="hoja" id="laguna">\n  <span class="bicho" data-animal="rana">Sapo</span>\n</div>`,
+    lesson: `<p>Desde cualquier elemento podés moverte por el árbol: <code>parentElement</code> (padre), <code>children</code> (hijos), <code>nextElementSibling</code> (hermano siguiente), <code>closest('selector')</code> (el ancestro más cercano que coincida).</p>
+<pre>const hijo = document.querySelector('#x');
+hijo.parentElement.classList.remove('activo');
+hijo.closest('.tarjeta');</pre>`,
+    task: `Partiendo de <strong>#tito</strong>: sacale la clase <strong>asustado</strong> a él, y la clase <strong>rota</strong> a su hoja (su <strong>parentElement</strong>).`,
+    hint: `const tito = ...; tito.classList.remove('asustado'); tito.parentElement.classList.remove('rota');`,
+    solution: `const tito = document.getElementById('tito');\ntito.classList.remove('asustado');\ntito.parentElement.classList.remove('rota');`,
+    check: s => { const t = s.querySelector('#tito'); return t && !t.classList.contains('asustado') && !t.parentElement.classList.contains('rota') && s.querySelectorAll('.hoja').length === 2; },
+  },
+  {
+    ch: 2, title: "createElement + append",
+    story: `Con la hoja grande arreglada hay lugar para alguien nuevo. Bea, una abeja del jardín de al lado, quiere mudarse. No existe todavía en el terrario: hay que crearla desde cero.`,
+    html: `<div class="hoja" id="grande">\n  <span class="bicho" data-animal="caracol">Tito</span>\n</div>`,
+    goal: `<div class="hoja" id="grande">\n  <span class="bicho" data-animal="caracol">Tito</span>\n  <span class="bicho" data-animal="abeja">Bea</span>\n</div>`,
+    lesson: `<p>Crear un elemento son dos pasos: fabricarlo con <code>document.createElement('span')</code> y meterlo en el árbol con <code>padre.append(hijo)</code>. Hasta que no lo agregás, existe en memoria pero no se ve.</p>
+<pre>const b = document.createElement('span');
+b.className = 'bicho';
+b.dataset.animal = 'rana';
+b.textContent = 'Sapo';
+document.querySelector('#laguna').append(b);</pre>`,
+    task: `Agregá a <strong>#grande</strong> un <strong>span</strong> con clase <strong>bicho</strong>, <strong>data-animal="abeja"</strong> y nombre <strong>Bea</strong>.`,
+    hint: `createElement('span'), classList.add('bicho'), dataset.animal = 'abeja', textContent = 'Bea', append.`,
+    solution: `const bea = document.createElement('span');\nbea.classList.add('bicho');\nbea.dataset.animal = 'abeja';\nbea.textContent = 'Bea';\ndocument.getElementById('grande').append(bea);`,
+    check: s => { const b = [...s.querySelectorAll('#grande .bicho')]; return b.length === 2 && b[0].dataset.animal === 'caracol' && b[1].dataset.animal === 'abeja' && b[1].textContent.trim() === 'Bea'; },
+    gana: { e: '🐝', n: 'Bea' },
+  },
+  {
+    ch: 2, title: "prepend / before / after",
+    story: `Por si vuelve la araña, Sapo se ofreció a hacer guardia en la hoja grande. Pero un guardia tiene que estar en la puerta, o sea, primero.`,
+    html: `<div class="hoja" id="grande">\n  <span class="bicho" data-animal="caracol">Tito</span>\n  <span class="bicho" data-animal="abeja">Bea</span>\n</div>`,
+    goal: `<div class="hoja" id="grande">\n  <span class="bicho" data-animal="rana">Sapo</span>\n  <span class="bicho" data-animal="caracol">Tito</span>\n  <span class="bicho" data-animal="abeja">Bea</span>\n</div>`,
+    lesson: `<p>El orden importa. <code>append</code> pone al final, <code>prepend</code> al principio. También existen <code>elemento.before(otro)</code>, <code>elemento.after(otro)</code> y el clásico <code>padre.insertBefore(nuevo, referencia)</code>.</p>
+<pre>hoja.prepend(nuevo);   // primero
+tito.before(nuevo);    // antes de Tito
+tito.after(nuevo);     // después de Tito</pre>`,
+    task: `Creá a <strong>Sapo</strong> (span, clase <strong>bicho</strong>, data-animal <strong>rana</strong>) y ponelo <strong>primero</strong> en <strong>#grande</strong>.`,
+    hint: `Igual que crear, pero terminás con hoja.prepend(sapo).`,
+    solution: `const sapo = document.createElement('span');\nsapo.className = 'bicho';\nsapo.dataset.animal = 'rana';\nsapo.textContent = 'Sapo';\ndocument.getElementById('grande').prepend(sapo);`,
+    check: s => [...s.querySelectorAll('#grande .bicho')].map(x => x.dataset.animal).join(',') === 'rana,caracol,abeja',
+  },
+
+  // ---------- Capítulo 4: Abrir ----------
+  {
+    ch: 3, title: "addEventListener",
+    story: `El terrario ya está en pie. Pero para abrirlo al público necesita responder a la gente: la primera cosa que pidieron los chicos del barrio es un botón para darle de comer a Sapo.`,
+    html: `<button id="alimentar">Dar de comer</button>\n<div class="hoja" id="laguna">\n  <span class="bicho" data-animal="rana">Sapo</span>\n</div>`,
+    goal: `<button id="alimentar">Dar de comer</button>\n<div class="hoja" id="laguna">\n  <span class="bicho feliz" data-animal="rana">Sapo</span>\n</div>`,
+    lesson: `<p>Con <code>elemento.addEventListener('click', funcion)</code> la función se ejecuta cada vez que ocurre el evento. La clase <code>feliz</code> hace saltar al bicho.</p>
+<pre>const btn = document.querySelector('button');
+btn.addEventListener('click', () => {
+  console.log('me tocaron');
+});</pre>
+<p>Después de ejecutar tu código, yo toco el botón una vez. Vos también podés tocarlo en tu terrario.</p>`,
+    task: `Al hacer clic en <strong>#alimentar</strong>, Sapo tiene que recibir la clase <strong>feliz</strong>. No antes.`,
+    hint: `Dentro del listener: sapo.classList.add('feliz').`,
+    solution: `const boton = document.getElementById('alimentar');\nconst sapo = document.querySelector('.bicho');\nboton.addEventListener('click', () => {\n  sapo.classList.add('feliz');\n});`,
+    simulate: s => { s.querySelector('#alimentar')?.click(); return 'Toqué el botón 1 vez.'; },
+    precheck: s => !s.querySelector('.bicho')?.classList.contains('feliz'),
+    check: s => s.querySelector('.bicho')?.classList.contains('feliz'),
+  },
+  {
+    ch: 3, title: "Estado + eventos",
+    story: `Segundo pedido: que se pueda regar. Fer plantó un brote en la hoja grande. Crece según <code>data-nivel</code>, de 0 a 3. Cada riego lo sube un nivel.`,
+    html: `<button id="regar">Regar</button>\n<div class="hoja" id="grande">\n  <span id="planta" class="planta" data-nivel="0">Brote</span>\n</div>`,
+    goal: `<button id="regar">Regar</button>\n<div class="hoja" id="grande">\n  <span id="planta" class="planta" data-nivel="3">Brote</span>\n</div>`,
+    lesson: `<p>Lo normal es guardar el estado en una variable de JS y reflejarlo en el DOM en cada evento. Acordate de que los atributos siempre son texto: para sumar, usá una variable numérica aparte.</p>
+<pre>let cuenta = 0;
+btn.addEventListener('click', () => {
+  cuenta++;
+  planta.dataset.nivel = cuenta;
+});</pre>
+<p>Voy a regar 3 veces.</p>`,
+    task: `Cada clic en <strong>#regar</strong> debe subir en 1 el <strong>data-nivel</strong> de <strong>#planta</strong>.`,
+    hint: `let nivel = 0; en cada clic nivel++ y planta.dataset.nivel = nivel.`,
+    solution: `let nivel = 0;\nconst planta = document.getElementById('planta');\ndocument.getElementById('regar').addEventListener('click', () => {\n  nivel++;\n  planta.dataset.nivel = nivel;\n});`,
+    simulate: s => { const b = s.querySelector('#regar'); b?.click(); b?.click(); b?.click(); return 'Regué 3 veces.'; },
+    precheck: s => s.querySelector('#planta')?.dataset.nivel === '0',
+    check: s => s.querySelector('#planta')?.dataset.nivel === '3',
+    gana: { e: '🌳', n: 'Árbol' },
+  },
+  {
+    ch: 3, title: "Todo junto: la reapertura",
+    story: `Llegó el día. El cartel todavía dice "cerrado" y Pipa, la oruga del huevo que encontramos al principio, lleva días quieta en un capullo. Cuando alguien toque el botón de abrir, tienen que pasar dos cosas a la vez: el cartel cambia y Pipa sale volando.`,
+    html: `<h1>Terrario de {{nombre}}: cerrado</h1>\n<button id="abrir">Abrir el terrario</button>\n<div class="hoja" id="entrada">\n  <span id="pipa" class="bicho" data-animal="oruga">Pipa</span>\n</div>`,
+    goal: `<h1>Terrario de {{nombre}}: abierto</h1>\n<button id="abrir">Abrir el terrario</button>\n<div class="hoja" id="entrada">\n  <span id="pipa" class="bicho feliz" data-animal="mariposa">Pipa</span>\n</div>`,
+    lesson: `<p>Seleccionar, escuchar, cambiar texto, cambiar atributos, cambiar clases. Es todo lo que usaste hasta ahora, en un solo listener. Es también el esqueleto de cualquier app real.</p>
+<p>Voy a tocar el botón 1 vez.</p>`,
+    task: `Al hacer clic en <strong>#abrir</strong>: el <strong>h1</strong> debe decir <strong>Terrario de {{nombre}}: abierto</strong>, y <strong>#pipa</strong> debe pasar a <strong>data-animal="mariposa"</strong> con la clase <strong>feliz</strong>.`,
+    hint: `Un listener con tres líneas adentro: textContent del h1, dataset.animal de pipa, classList.add('feliz').`,
+    solution: `const cartel = document.querySelector('h1');\nconst pipa = document.getElementById('pipa');\ndocument.getElementById('abrir').addEventListener('click', () => {\n  cartel.textContent = 'Terrario de {{nombre}}: abierto';\n  pipa.dataset.animal = 'mariposa';\n  pipa.classList.add('feliz');\n});`,
+    simulate: s => { s.querySelector('#abrir')?.click(); return 'Toqué el botón.'; },
+    precheck: s => s.querySelector('#pipa')?.dataset.animal === 'oruga',
+    check: s => { const p = s.querySelector('#pipa'); return p && p.dataset.animal === 'mariposa' && p.classList.contains('feliz') && s.querySelector('h1')?.textContent.trim() === `Terrario de ${state.nombre}: abierto`; },
+    gana: { e: '🦋', n: 'Pipa' },
+  },
+];
+
+const FRASES_OK = ['¡Eso es! Los bichos están felices.', 'Perfecto. Se nota que el terrario ya tiene dueño.', 'Muy bien, seguimos.', '¡Justo así!'];
+const FRASES_NO = ['Mmm, todavía no. Mirá la diferencia entre los dos terrarios.', 'Casi. Compará el HTML de abajo, ahí está la pista.', 'No es eso. Fijate qué elemento cambió y cuál faltó.'];
+
+// ---------------------------------------------------------------
+const state = { nombre: '', current: 0, done: new Set(), familia: [], code: {} };
+const $ = sel => document.querySelector(sel);
+const stage = $('#stage'), goal = $('#goal'), stageHtml = $('#stageHtml'), goalHtml = $('#goalHtml');
+const codeArea = $('#code'), consoleEl = $('#console'), hintText = $('#hintText'), guide = $('#guide');
+const fill = t => t.replace(/\{\{nombre\}\}/g, state.nombre || 'alguien');
+
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function serialize(node, depth = 0) {
+  const pad = '  '.repeat(depth); let out = '';
+  for (const child of node.childNodes) {
+    if (child.nodeType === 3) { const t = child.textContent.trim(); if (t) out += pad + esc(t) + '\n'; }
+    else if (child.nodeType === 1) {
+      const tag = child.tagName.toLowerCase();
+      const attrs = [...child.attributes].map(a => ` <span class="a">${esc(a.name)}</span>=<span class="v">"${esc(a.value)}"</span>`).join('');
+      const kids = [...child.childNodes];
+      if (kids.length === 0) out += `${pad}<span class="t">&lt;${tag}${attrs}&gt;&lt;/${tag}&gt;</span>\n`;
+      else if (kids.every(k => k.nodeType === 3)) out += `${pad}<span class="t">&lt;${tag}${attrs}&gt;</span>${esc(child.textContent.trim())}<span class="t">&lt;/${tag}&gt;</span>\n`;
+      else out += `${pad}<span class="t">&lt;${tag}${attrs}&gt;</span>\n` + serialize(child, depth + 1) + `${pad}<span class="t">&lt;/${tag}&gt;</span>\n`;
+    }
+  }
+  return out;
+}
+const refreshHtmlViews = () => { stageHtml.innerHTML = serialize(stage); goalHtml.innerHTML = serialize(goal); };
+
+function unlockedUpTo() { let n = 0; while (n < LEVELS.length && state.done.has(n)) n++; return n; }
+
+function renderNav() {
+  const ch = $('#chapters'); ch.innerHTML = '';
+  CHAPTERS.forEach((c, i) => {
+    const lv = LEVELS.filter(l => l.ch === i);
+    const doneN = lv.filter(l => state.done.has(LEVELS.indexOf(l))).length;
+    const d = document.createElement('div');
+    d.className = 'chapter' + (LEVELS[state.current].ch === i ? ' current' : '') + (doneN === lv.length ? ' done' : '');
+    d.innerHTML = `<b>${i + 1}. ${c.name}</b>${c.desc}<div class="bar"><i style="width:${doneN / lv.length * 100}%"></i></div>`;
+    ch.append(d);
+  });
+  const nav = $('#levels'); nav.innerHTML = '';
+  const max = unlockedUpTo();
+  LEVELS.forEach((lv, i) => {
+    const b = document.createElement('button');
+    b.textContent = i + 1; b.title = lv.title;
+    if (state.done.has(i)) b.classList.add('done');
+    if (i === state.current) b.classList.add('current');
+    b.disabled = i > max;
+    b.addEventListener('click', () => loadLevel(i));
+    nav.append(b);
+  });
+  const fam = $('#familia');
+  fam.innerHTML = (state.familia.length
+    ? state.familia.map(m => `<span class="miembro"><i>${m.e}</i>${m.n}</span>`).join('')
+    : `<span class="vacio">todavía no rescataste a nadie</span>`);
+}
+function say(html, happy) {
+  $('#lesson').innerHTML = html;
+  guide.classList.toggle('happy', !!happy);
+  if (happy) setTimeout(() => guide.classList.remove('happy'), 1200);
+}
+function loadLevel(i) {
+  state.code[state.current] = codeArea.value;
+  $('#next')?.remove();
+  state.current = i;
+  const lv = LEVELS[i];
+  $('#levelTitle').innerHTML = `Capítulo ${lv.ch + 1}: ${CHAPTERS[lv.ch].name} <small>· nivel ${i + 1} de ${LEVELS.length} · ${lv.title}</small>`;
+  $('#story').innerHTML = lv.story;
+  say(lv.lesson);
+  $('#task').innerHTML = `Misión: ${fill(lv.task)}`;
+  stage.innerHTML = fill(lv.html); goal.innerHTML = fill(lv.goal);
+  stage.classList.toggle('noche', !!lv.noche); goal.classList.toggle('noche', !!lv.noche);
+  goal.querySelectorAll('button').forEach(b => b.disabled = true);
+  codeArea.value = state.code[i] || '';
+  hintText.textContent = ''; hintText.classList.remove('show');
+  setConsole('');
+  renderNav(); refreshHtmlViews(); codeArea.focus();
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(snapshot())); } catch (e) {}
+}
+function setConsole(msg, kind) { consoleEl.textContent = msg; consoleEl.className = 'console' + (kind ? ' ' + kind : ''); }
+
+function makeDocument(root) {
+  return {
+    querySelector: s => root.querySelector(s), querySelectorAll: s => root.querySelectorAll(s),
+    getElementById: id => root.querySelector('#' + CSS.escape(id)),
+    getElementsByClassName: c => root.getElementsByClassName(c), getElementsByTagName: t => root.getElementsByTagName(t),
+    createElement: t => document.createElement(t), createTextNode: t => document.createTextNode(t),
+    createDocumentFragment: () => document.createDocumentFragment(), body: root, documentElement: root,
+  };
+}
+function run() {
+  const lv = LEVELS[state.current];
+  stage.innerHTML = fill(lv.html); stage.classList.remove('festejo');
+  const logs = [];
+  const fakeConsole = { log: (...a) => logs.push(a.map(String).join(' ')), error: (...a) => logs.push('ERROR ' + a.join(' ')) };
+  try {
+    new Function('document', 'console', '"use strict";\n' + codeArea.value)(makeDocument(stage), fakeConsole);
+  } catch (err) {
+    refreshHtmlViews();
+    setConsole('Error de JavaScript: ' + err.message, 'error');
+    say(`<p>Uy, el código explotó. Leé el error de abajo: casi siempre es un selector que no encontró nada (<code>null</code>) o un nombre mal escrito.</p>`);
+    return;
+  }
+  const prematuro = lv.precheck && !lv.precheck(stage);
+  const note = lv.simulate ? lv.simulate(stage) : '';
+  refreshHtmlViews();
+  const ok = !prematuro && !!lv.check(stage);
+  const logText = logs.length ? 'console.log → ' + logs.join(' | ') : '';
+  if (ok) {
+    const first = !state.done.has(state.current);
+    state.done.add(state.current);
+    if (lv.onWin) lv.onWin(stage);
+    if (first && lv.gana) [].concat(lv.gana).forEach(g => state.familia.push(g));
+    renderNav();
+    stage.classList.add('festejo');
+    const chDone = LEVELS.filter(l => l.ch === lv.ch).every(l => state.done.has(LEVELS.indexOf(l)));
+    const last = state.current === LEVELS.length - 1;
+    let msg = `<p>${FRASES_OK[Math.floor(Math.random() * FRASES_OK.length)]} ${note}</p>`;
+    if (first && lv.gana) msg += `<p>${[].concat(lv.gana).map(g => g.e + ' ' + g.n).join(', ')} se suma a tu familia.</p>`;
+    if (chDone && first && !last) msg += `<p>🏅 Capítulo "${CHAPTERS[lv.ch].name}" completo: medalla de <strong>${CHAPTERS[lv.ch].badge}</strong>.</p>`;
+    if (!last) msg += `<p>Tocá <strong>Siguiente</strong> cuando quieras.</p>`;
+    say(msg, true);
+    setConsole(logText);
+    saveProgress(); jar.update();
+    if (state.done.size === LEVELS.length) setTimeout(showWin, 1000); else addNextButton();
+  } else {
+    const extra = prematuro ? ' Ojo: el cambio tiene que pasar recién cuando se hace clic, no al ejecutar el código.' : '';
+    say(`<p>${FRASES_NO[Math.floor(Math.random() * FRASES_NO.length)]}${extra} ${note}</p>`);
+    setConsole(logText);
+  }
+}
+function addNextButton() {
+  if ($('#next')) return;
+  const b = document.createElement('button');
+  b.className = 'btn primary'; b.id = 'next'; b.textContent = 'Siguiente';
+  b.addEventListener('click', () => loadLevel(Math.min(state.current + 1, LEVELS.length - 1)));
+  $('#run').after(b);
+}
+function showWin() {
+  $('#winText').textContent = `El Terrario de ${state.nombre} volvió a abrir. Encontraste un huevo, despertaste a todos, sacaste a la araña, reconstruiste la hoja y al final Pipa salió volando. Todo eso fue el DOM: seleccionar, cambiar, crear, borrar y escuchar.`;
+  $('#winBugs').textContent = state.familia.map(m => m.e).join(' ');
+  $('#win').classList.add('show');
+}
+
+
+// ---------------------------------------------------------------
+// Progreso: siempre en localStorage; opcionalmente en la nube (Supabase).
+// Para activar la nube: creá un proyecto gratis en supabase.com, activá
+// Auth > Email (magic link), y ejecutá este SQL en el editor:
+//   create table progreso (user_id uuid primary key references auth.users, data jsonb, updated_at timestamptz default now());
+//   alter table progreso enable row level security;
+//   create policy "propio" on progreso for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+// Después pegá acá la URL y la anon key del proyecto (Settings > API).
+// ---------------------------------------------------------------
+const CLOUD = { url: '', key: '' };
+let supa = null, user = null;
+const STORE_KEY = 'terrario-dom';
+
+function snapshot() { return { nombre: state.nombre, done: [...state.done], familia: state.familia, code: state.code, current: state.current }; }
+function restore(d) {
+  if (!d) return;
+  state.nombre = d.nombre || ''; state.done = new Set(d.done || []); state.familia = d.familia || []; state.code = d.code || {}; state.current = d.current || 0;
+}
+function saveProgress() {
+  state.code[state.current] = codeArea.value;
+  const d = snapshot();
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(d)); } catch (e) {}
+  if (supa && user) supa.from('progreso').upsert({ user_id: user.id, data: d, updated_at: new Date().toISOString() }).then(({ error }) => { if (error) console.warn(error); });
+}
+function loadLocal() { try { restore(JSON.parse(localStorage.getItem(STORE_KEY))); } catch (e) {} }
+function mergeCloud(d) {
+  if (!d) return;
+  (d.done || []).forEach(i => state.done.add(i));
+  if (!state.nombre && d.nombre) state.nombre = d.nombre;
+  const nombres = new Set(state.familia.map(m => m.n + m.e));
+  (d.familia || []).forEach(m => { if (!nombres.has(m.n + m.e)) state.familia.push(m); });
+  state.code = { ...(d.code || {}), ...state.code };
+}
+function cuentaUI() {
+  const c = $('#cuenta');
+  if (!CLOUD.url || !CLOUD.key) { c.innerHTML = '<span>Tu progreso se guarda en este navegador.</span>'; return; }
+  if (user) {
+    c.innerHTML = `<span>Progreso guardado en la nube como <b>${user.email}</b>.</span> <button class="btn ghost" id="salir">Cerrar sesión</button>`;
+    $('#salir').addEventListener('click', async () => { await supa.auth.signOut(); user = null; cuentaUI(); });
+  } else {
+    c.innerHTML = `<span>¿Querés guardar tu progreso en cualquier dispositivo?</span> <input id="mail" type="email" placeholder="tu@email.com" aria-label="Email"> <button class="btn" id="entrar">Enviarme un link</button>`;
+    $('#entrar').addEventListener('click', async () => {
+      const email = $('#mail').value.trim(); if (!email) return;
+      const { error } = await supa.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split('#')[0] } });
+      c.innerHTML = error ? `<span>No se pudo enviar: ${error.message}</span>` : `<span>Listo. Revisá tu correo y tocá el link para entrar (sin contraseña).</span>`;
+    });
+  }
+}
+async function initCloud() {
+  if (!CLOUD.url || !CLOUD.key) return cuentaUI();
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    supa = createClient(CLOUD.url, CLOUD.key);
+    const { data } = await supa.auth.getSession();
+    user = data.session?.user || null;
+    if (user) {
+      const { data: row } = await supa.from('progreso').select('data').eq('user_id', user.id).maybeSingle();
+      mergeCloud(row?.data); renderNav(); saveProgress();
+    }
+    supa.auth.onAuthStateChange((_e, session) => { user = session?.user || null; cuentaUI(); if (user) saveProgress(); });
+  } catch (e) { console.warn('nube no disponible', e); }
+  cuentaUI();
+}
+
+const jar = { update() {} };
+
+$('#run').addEventListener('click', run);
+$('#reset').addEventListener('click', () => { codeArea.value = ''; loadLevel(state.current); });
+$('#hint').addEventListener('click', () => { hintText.textContent = 'Pista: ' + fill(LEVELS[state.current].hint); hintText.classList.add('show'); });
+$('#solution').addEventListener('click', () => { codeArea.value = fill(LEVELS[state.current].solution); codeArea.focus(); });
+codeArea.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+  if (e.key === 'Tab') { e.preventDefault(); const s = codeArea.selectionStart, en = codeArea.selectionEnd; codeArea.value = codeArea.value.slice(0, s) + '  ' + codeArea.value.slice(en); codeArea.selectionStart = codeArea.selectionEnd = s + 2; }
+});
+$('#winClose').addEventListener('click', () => { $('#win').classList.remove('show'); state.done.clear(); state.familia = []; state.nombre = ''; state.code = {}; saveProgress(); jar.update(); loadLevel(0); });
+loadLocal();
+loadLevel(Math.min(state.current, unlockedUpTo()));
+jar.update();
+initCloud();
+</script>
+</body>
+</html>
